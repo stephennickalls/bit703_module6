@@ -1,0 +1,10 @@
+name: Tags
+form: $/Openpolytechnic/philter/models/tag/fields.yaml
+modelClass: Openpolytechnic\Philter\Models\Tag
+defaultRedirect: Openpolytechnic/philter/tags
+create:
+    redirect: 'Openpolytechnic/philter/tags/update/:id'
+    redirectClose: Openpolytechnic/philter/tags
+update:
+    redirect: Openpolytechnic/philter/tags
+    redirectClose: Openpolytechnic/philter/tags
