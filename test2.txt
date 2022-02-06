@@ -1,7 +1,0 @@
-(object) array(
-   'id' => 1,
-   'name' => 'Test image',
-   'description' => 'a description of the image',
-   'user_id' => 3,
-   'filter' => 'clarendon',
-)
