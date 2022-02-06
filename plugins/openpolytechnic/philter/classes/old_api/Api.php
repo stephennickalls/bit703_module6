@@ -3,13 +3,13 @@
 use App;
 use Auth;
 use Input;
+use Request;
 use Response;
 use Exception;
 use Openpolytechnic\Philter\Models\Image as ImageModel;
 use Openpolytechnic\Philter\Models\Tag as TagModel;
 use RainLab\User\Models\User as UserModel;
 use Illuminate\Database\Eloquent\ModelNotFoundException as ModelNotFoundException;
-
 
 class Api
 {
@@ -18,7 +18,7 @@ class Api
 	 * as a custom header
 	 */
 	public $token = '';
-	
+
 	/**
 	 * Method that accepts $_POST login data 
 	 * and tries to log in the user. 
@@ -29,21 +29,30 @@ class Api
 	 */
     public function login()
     {
+		/***** YOU NEED TO IMPLEMENT THESE METHODS *****/
 		$login = Input::get('login');
 		$password = Input::get('password');
 		try{
-		    $user = Auth::authenticate([
-				'login' => $login,
-				'password' => $password
+			$user=Auth::authenticate([
+				'login'=>$login,
+				'password'=>$password
 			]);
-			$token = $this->setToken($user);
-			// $data = JWTAuth::getSession();
-			return $this->sendResponse('You are now logged in </br>' . $token );
+			$this->setToken($user);
+			foreach($_SERVER as $key => $value)
+				{
+				file_put_contents('setTokenFile.txt', "<b>$key:</b> $value<br>\n", FILE_APPEND);
+				}
+			return $this->sendResponse('You are now logged in '. $this->token);
 		}
-		catch (Exception $e) {
+		catch (Exception $e){
 			return $this->sendResponse($e->getMessage());
+
 		}
     }
+
+	public function checkUser(){
+		return JWTAuth::GetJWTUser();
+	}
 	
 	/**
 	 * Method that accepts $_POST login data 
@@ -61,33 +70,36 @@ class Api
 		 * or if the passwords do not match
 		 */
 		try{
-			$user = new UserModel();
-				$user->name = Input::get('name');
-				$user->email = Input::get('email');
-				$user->password = Input::get('password');
-				$user->password_confirmation = Input::get('password_confirmation');
-				$user->save();	
-				$this->setToken($user);
-				return $this->sendResponse('You have been registered and are logged in');
-			} 
-			catch(Exception $e){
-				return $this->sendResponse($e->getMessage());
-			}
+		$user = new UserModel();
+			$user->name = Input::get('name');
+			$user->email = Input::get('email');
+			$user->password = Input::get('password');
+			$user->password_confirmation = Input::get('password_confirmation');
+			$user->save();	
+			$this->setToken($user);
+			return $this->sendResponse('You have been registered and are logged in');
+		} 
+		catch(Exception $e){
+			return $this->sendResponse($e->getMessage());
+		}
     }
 	
-	/**
-	 * Method that logs out a user 
-	 * by returning an expired token.
-	 * 
-     *
-     * @return Response The October CMS response with a message
-	 */
-    public function logout()
-    {
+/**
+ * Method that logs out a user 
+ * by returning an expired token.
+ * 
+	 *
+	 * @return Response The October CMS response with a message
+ */
+	public function logout()
+	{
+		// $user = $this->checkToken();
+		// if (is_a($user, 'RainLab\User\Models\User')) {
+		// }
+		// return $this->sendResponse(false, 'You are not authorised to make this request');
 		$user = JWTAuth::GetJWTUser();
-		// $this->expireToken($user);
-		return $this->sendResponse('You are now logged out ');
-
+		$this->expireToken($user);
+		return $this->sendResponse('you are now logged out');
 	}
 	
 	/**
@@ -99,8 +111,6 @@ class Api
     public function getUser()
     {
 
-		// $data =  JWTAuth::getSession();
-		// return $this->sendResponse($data);
 		$user = $this->checkToken();
 		if (is_a($user, 'RainLab\User\Models\User')) {
 			return $this->sendResponse(UserModel::find($user->id));
@@ -117,14 +127,14 @@ class Api
     public function updateUser()
     {		
 		$user = $this->checkToken();
-		if ($user) {	
+		if (is_a($user, 'RainLab\User\Models\User')) {
 			$userModel = UserModel::find($user->id);
 			$data = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
 			$userModel->fill($data);
 			$userModel->save();
 			return $this->sendResponse('Your details have been successfully updated');
 		}
-		return $this->sendResponse('You are not authorised to update this account');
+		return $this->sendResponse(false, 'You are not authorised to update this account');
     }
 	
 	/**
@@ -135,14 +145,15 @@ class Api
 	 */
     public function deleteUser()
     {		
+	
 		$user = $this->checkToken();
-		if ($user) {	
+		if (is_a($user, 'RainLab\User\Models\User')) {
 			$userModel = UserModel::find($user->id);
 			$userModel->destroy();
 			$this->expireToken($userModel);
 			return $this->sendResponse('Your account has been deleted');
 		}
-		return $this->sendResponse('You are not authorised to delete this account');
+		return $this->sendResponse(false, 'You are not authorised to delete this account');
     }
 	
 	/**
@@ -153,9 +164,8 @@ class Api
 	 */
     public function getImages()
     {
-		//TODO Image 2. What should our query builder do?
-		// $data = ImageModel::???();
-		$data = [];
+		// $data = ImageModel::get();
+		$data = ImageModel::getAll();
 		return $this->sendResponse($data);
     }
 	
@@ -168,7 +178,7 @@ class Api
 	 */
     public function getImage($image_id)
     {
-        $data = ImageModel::find($image_id);
+		$data = ImageModel::find($image_id);
 		return $this->sendResponse($data);
     }
 		
@@ -181,12 +191,12 @@ class Api
     public function addImage()
     {
 		$user = $this->checkToken();
-		if ($user) {
+		if (is_a($user, 'RainLab\User\Models\User')) {
 			$image = new ImageModel();
 			$this->saveImageModel($image, $user);
 			return $this->sendResponse('Your image has been successfully uploaded');
 		}
-		return $this->sendResponse('You are not authorised to add an image');
+		return $this->sendResponse(false, 'You are not authorised to add an image');
     }
 	
 	/**
@@ -199,13 +209,13 @@ class Api
 	 */
     public function updateImage($image_id)
     {			
+
 		/**
 		 * Validate that we have 
 		 * a logged-in user
 		 */
 		$user = $this->checkToken();
-		if ($user) {
-
+		if (is_a($user, 'RainLab\User\Models\User')) {
 			/**
 			 * Only this user should be 
 			 * updating this image
@@ -216,7 +226,7 @@ class Api
 				return $this->sendResponse('Your image has been successfully updated');
 			}
 		}
-		return $this->sendResponse('You are not authorised to update this image');
+		return $this->sendResponse(false, 'You are not authorised to update this image');
     }
 	
 	/**
@@ -228,24 +238,24 @@ class Api
 	 */
     public function deleteImage($image_id)
     {			
+
 		/**
 		 * Validate that we have 
 		 * a logged-in user
 		 */
 		$user = $this->checkToken();
-		if ($user) {
-
+		if (is_a($user, 'RainLab\User\Models\User')) {
 			/**
 			 * Only this user should be 
 			 * updating this image
 			 */
 			$image = ImageModel::usersImages($user->id)->find($image_id);
 			if ($image) {
-				//TODO Image 5. How can we delete this image?
-				//return $this->sendResponse('Your image has been successfully deleted');
+				$image->delete();
+				return $this->sendResponse('Your image has been successfully deleted');
 			}
 		}
-		return $this->sendResponse('You are not authorised to delete this image');
+		return $this->sendResponse(false, 'You are not authorised to delete this image');
     }
 		
 		
@@ -284,12 +294,21 @@ class Api
     public function getUserImages()
     {
 		$user = $this->checkToken();
-		if ($user) {
-			//TODO User 2. What should our query builder do?
-			// $data = ImageModel::???();
-			$data = [];
-        }
-        return $this->sendResponse($data);
+		if (is_a($user, 'RainLab\User\Models\User')) {
+			$data = ImageModel::get();
+			 $data = $this->sendResponse($data);
+		}
+		return $this->sendResponse($data);
+    }
+
+    public function getOthersImages()
+    {
+		$user = $this->checkToken();
+		if (is_a($user, 'RainLab\User\Models\User')) {
+			
+        } else {
+			
+		}
     }
 
 	/**
@@ -297,8 +316,14 @@ class Api
 	 */
     private function setToken(UserModel $user)
     {
-		return $this->token = JWTAuth::AddJWTToken($user);
+		$this->token = JWTAuth::AddJWTToken($user);
+		$_SERVER['HTTP_AUTHORIZATION'] = $this->token;
+		// foreach($_SERVER as $key => $value)
+        //     {
+        //     file_put_contents('setTokenFile.txt', "<b>$key:</b> $value<br>\n", FILE_APPEND);
+        //     }
 	}
+
 
 	/**
 	 * Wrapper function for JWTAuth's ExpireJWTToken
@@ -315,10 +340,14 @@ class Api
     {
 		try {
 			$user = JWTAuth::GetJWTUser();
-			$this->token = JWTAuth::CheckJWTToken($user->id);
-            return $user;
+			if (is_a($user, 'RainLab\User\Models\User')) {
+				$this->token = JWTAuth::CheckJWTToken($user->id);
+				return $user;
+			} else {
+				return false;
+			}
         } catch (\UnexpectedValueException $e) {
-            return $this->sendResponse($e->getMessage());
+            return $this->sendResponse(false, $e->getMessage());
         }
     }
 	
@@ -328,7 +357,10 @@ class Api
 	 */
 	private function sendResponse($data, $error=false)
 	{
-		return Response::json($data)->header('AUTHORIZATION', $this->token);
+		if ($error) {
+			return Response::json($error, '401');
+		}
+		return Response::json($data)->header('Authorization', 'bearer ' . $this->token);
 	}
 
 }

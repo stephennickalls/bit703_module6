@@ -165,6 +165,8 @@ class JWT
         $signature = static::sign($signing_input, $key, $alg);
         $segments[] = static::urlsafeB64Encode($signature);
 
+        // file_put_contents("test.txt", implode('.', $segments));
+
         return implode('.', $segments);
     }
 

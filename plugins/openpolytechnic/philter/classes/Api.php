@@ -38,13 +38,22 @@ class Api
 				'password'=>$password
 			]);
 			$this->setToken($user);
-			return $this->sendResponse('You are now logged in');
+			// foreach($_SERVER as $key => $value)
+            // {
+            // 	file_put_contents('setTokenFile.txt', "<b>$key:</b> $value<br>\n", FILE_APPEND);
+         	// }
+			//  file_put_contents('setTokenFile.txt', "\n", FILE_APPEND);
+			return $this->sendResponse('You are now logged in ');
 		}
 		catch (Exception $e){
 			return $this->sendResponse($e->getMessage());
 
 		}
     }
+
+	public function checkUser(){
+		return JWTAuth::GetJWTUser();
+	}
 	
 	/**
 	 * Method that accepts $_POST login data 
@@ -85,13 +94,17 @@ class Api
  */
 	public function logout()
 	{
-		// $user = $this->checkToken();
-		// if (is_a($user, 'RainLab\User\Models\User')) {
-		// }
-		// return $this->sendResponse(false, 'You are not authorised to make this request');
-		$user = JWTAuth::GetJWTUser();
-		$this->expireToken($user);
-		return $this->sendResponse('you are now logged out');
+
+		// $user = JWTAuth::GetJWTUser();
+		$user = $this->checkToken();
+		// file_put_contents('test.txt', $user, FILE_APPEND);
+		if (is_a($user, 'RainLab\User\Models\User')) {
+			$this->expireToken(UserModel::find($user->id));
+			return $this->sendResponse('you are now logged out');
+		}
+		// $this->expireToken($user);
+		return $this->sendResponse('not logged out');
+		
 	}
 	
 	/**
@@ -102,11 +115,18 @@ class Api
 	 */
     public function getUser()
     {
+		//  foreach($_SERVER as $key => $value)
+        //     {
+        //     	file_put_contents('getUserToken.txt', "<b>$key:</b> $value<br>\n", FILE_APPEND);
+        //  	}
+		// 	 file_put_contents('getUserToken.txt', "\n", FILE_APPEND);
+
 		$user = $this->checkToken();
+		// file_put_contents('test.txt', $user, FILE_APPEND);
 		if (is_a($user, 'RainLab\User\Models\User')) {
 			return $this->sendResponse(UserModel::find($user->id));
 		}
-		return $this->sendResponse(false, 'You are not authorised to view this user');
+		return $this->sendResponse(false, 'You are not authorised to view this user from getUser');
     }
 	
 	/**
@@ -157,6 +177,8 @@ class Api
     {
 		// $data = ImageModel::get();
 		$data = ImageModel::getAll();
+		// file_put_contents('getUserToken.txt', strval(gettype($data)), FILE_APPEND);
+		
 		return $this->sendResponse($data);
     }
 	
@@ -170,6 +192,7 @@ class Api
     public function getImage($image_id)
     {
 		$data = ImageModel::find($image_id);
+		
 		return $this->sendResponse($data);
     }
 		
@@ -182,6 +205,7 @@ class Api
     public function addImage()
     {
 		$user = $this->checkToken();
+		// file_put_contents('getUserToken.txt', $user, FILE_APPEND);
 		if (is_a($user, 'RainLab\User\Models\User')) {
 			$image = new ImageModel();
 			$this->saveImageModel($image, $user);
@@ -285,11 +309,13 @@ class Api
     public function getUserImages()
     {
 		$user = $this->checkToken();
+		// file_put_contents('the_file.txt', 'test', FILE_APPEND);
 		if (is_a($user, 'RainLab\User\Models\User')) {
-			$data = ImageModel::get();
-			 $data = $this->sendResponse($data);
+
+			$imagedata = ImageModel::UserImages($user->id);
+			
 		}
-		return $this->sendResponse($data);
+		return $this->sendResponse($imagedata);
     }
 
     public function getOthersImages()
@@ -307,8 +333,19 @@ class Api
 	 */
     private function setToken(UserModel $user)
     {
+
 		$this->token = JWTAuth::AddJWTToken($user);
+		// file_put_contents('setTokenFile.txt', isset( $_SERVER['HTTP_AUTHORIZATION'] ), FILE_APPEND);
+		// if ( ! isset($_SERVER['HTTP_AUTHORIZATION'] ) || $_SERVER['HTTP_AUTHORIZATION'] != $this->token )
+		// {
+		// 	$_SERVER['HTTP_AUTHORIZATION'] = $this->token;
+		// } 
+		// foreach($_SERVER as $key => $value)
+        //     {
+        //     file_put_contents('setTokenFile.txt', "<b>$key:</b> $value<br>\n", FILE_APPEND);
+        //     }
 	}
+
 
 	/**
 	 * Wrapper function for JWTAuth's ExpireJWTToken
@@ -325,6 +362,7 @@ class Api
     {
 		try {
 			$user = JWTAuth::GetJWTUser();
+			// file_put_contents('test.txt', $user, FILE_APPEND);
 			if (is_a($user, 'RainLab\User\Models\User')) {
 				$this->token = JWTAuth::CheckJWTToken($user->id);
 				return $user;

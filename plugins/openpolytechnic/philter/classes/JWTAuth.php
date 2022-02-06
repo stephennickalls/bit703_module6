@@ -1,5 +1,6 @@
 <?php namespace Openpolytechnic\Philter\Classes;
 
+use App;
 use Auth;
 use Config;
 use Request;
@@ -47,7 +48,9 @@ class JWTAuth
          * Looking for the JWT header, if not present just
          * return the user.
          */
+
         $token = self::GetRequestToken();
+        
 		if ($token && isset($token->data->user->id)) {
 			$jwt_user = UserModel::find($token->data->user->id);
 			if (is_a($jwt_user, 'RainLab\User\Models\User')) {
@@ -100,6 +103,8 @@ class JWTAuth
         /**
          * Return the token
          */
+        // file_put_contents("test.txt", JWT::encode($token, self::OP_JWT_KEY));
+
         return JWT::encode($token, self::OP_JWT_KEY);
     }
 
@@ -129,9 +134,11 @@ class JWTAuth
          * token is set
          */
         $token = self::GetJWTToken();
+        file_put_contents('test2.txt', $token, FILE_APPEND);
         if (!$token) {
             return false;
         }
+        
 		return JWT::decode($token, self::OP_JWT_KEY, array('HS256'));
     }
 
@@ -143,10 +150,19 @@ class JWTAuth
      */
     private static function GetJWTToken()
     {
-        $auth = isset($_SERVER['HTTP_AUTHORIZATION']) ?  filter_var($_SERVER['HTTP_AUTHORIZATION'], FILTER_SANITIZE_STRING) : false;
-        if ($auth) {
-            $parts = explode(' ', $auth);
+        // foreach($_SERVER as $key => $value)
+        //     {
+        //     file_put_contents('setTokenFile.txt', "<b>$key:</b> $value<br>\n", FILE_APPEND);
+        //  }
+
+        // file_put_contents('setTokenFile.txt', 'test', FILE_APPEND);  
+
+
+        // $auth = isset($_SERVER['HTTP_AUTHORIZATION']) ?  filter_var($_SERVER['HTTP_AUTHORIZATION'], FILTER_SANITIZE_STRING) : false;
+        if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $parts = explode(' ', $_SERVER['HTTP_AUTHORIZATION']);
             if (count($parts) == 2 && $parts[0] == 'Bearer') {
+                file_put_contents('setTokenFile.txt', $parts[1], FILE_APPEND);
                 return $parts[1];
             }
         }

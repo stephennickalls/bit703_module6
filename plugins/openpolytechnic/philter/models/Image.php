@@ -1,6 +1,7 @@
 <?php namespace Openpolytechnic\Philter\Models;
 
 use Model;
+use Auth;
 
 /**
  * Model
@@ -52,6 +53,7 @@ class Image extends Model
     public function scopeGetAll($query)
     {
         $data = Image::with('image')->get();
+        // file_put_contents('getUserToken.txt', $data, FILE_APPEND);
         return $data;
     }
 
@@ -61,9 +63,10 @@ class Image extends Model
     }
 
     public function scopeUserImages($query, $user_id){
-
-        return $query->where('user_id', $user_id)->orderBy('id', 'desc');
+        $data = Image::with('image')->where('user_id', $user_id)->get();
+        return $data;
     }
+
 
     public function scopeOthersImages($query, $user_id)
     {
